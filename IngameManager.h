@@ -28,6 +28,8 @@ public:
 
 	void DrawMainTitle();
 
+	void DrawDashBoard(int level, int score);
+
 	static void DrawSelectBar(int colIdx);
 
 	void ClearSelectBar(int colIdx);
@@ -37,6 +39,8 @@ public:
 	void MoveBlock(int colIdx, vector<vector<Block>>& column);
 
 	void HandleBar(int& colIdx, vector<vector<Block>>& column);
+
+	void UpdateScoreAndLevel(int points);
 
 	void HandleBlocksDown();
 

@@ -48,6 +48,10 @@ InGameManager::InGameManager()
             "#                    #",
             "#                    #",
             "#                    #",
+            "#                    #",
+            "#                    #",
+            "#                    #",
+            "#                    #",
             "######################"
     };
 }
@@ -86,7 +90,7 @@ void InGameManager::InGameDisplay()
 
 void InGameManager::MainMenu()
 {
-    system("mode con: cols=120 lines=60 | title Console_Project");
+    system("mode con: cols=150 lines=150 | title Console_Project");
     DrawMainTitle();
     DrawMainMenu();
 
@@ -106,6 +110,30 @@ void InGameManager::DrawMainTitle()
     cout << "#          #            ##         ########################################################" << endl;
 }
 
+void InGameManager::DrawDashBoard(int level, int score)
+{
+    KeyManager k;
+
+    // 대시보드 위치 (화면 우측 상단에 표시)
+    int x = 0;
+    int y = 4;
+
+    k.Gotoxy(x, y);
+    std::cout << "======================";
+    k.Gotoxy(x, y + 1);
+    std::cout << "     DASHBOARD       ";
+    k.Gotoxy(x, y + 2);
+    std::cout << "======================";
+    k.Gotoxy(x, y + 3);
+    std::cout << "Level: " << level;
+    k.Gotoxy(x, y + 4);
+    std::cout << "Score: " << score;
+    k.Gotoxy(x, y + 5);
+    std::cout << "======================";
+
+    std::cout << std::flush; // 즉시 출력
+}
+
 void InGameManager::DrawSelectBar(int colIdx)
 {
     
@@ -113,13 +141,13 @@ void InGameManager::DrawSelectBar(int colIdx)
     switch (colIdx)
     {
     case 0 :
-        k.Gotoxy(18, 42);
+        k.Gotoxy(18, 46);
         break;
     case 1: 
-        k.Gotoxy(19 + colIdx * 6, 42);
+        k.Gotoxy(19 + colIdx * 6, 46);
         break;
     case 2 : 
-        k.Gotoxy(20 + colIdx * 6, 42);
+        k.Gotoxy(20 + colIdx * 6, 46);
         break;
     }
     for (int i = 0; i < 6; i++) {
@@ -130,7 +158,7 @@ void InGameManager::DrawSelectBar(int colIdx)
 void InGameManager::ClearSelectBar(int colIdx)
 {
     KeyManager k;
-    k.Gotoxy(18, 42);
+    k.Gotoxy(18, 46);
     for (int i = 0; i < 20; i++) { // 전체 열 길이 기준으로 공백 출력
         std::cout << "  ";
     }
@@ -220,83 +248,54 @@ void InGameManager::HandleBar(int& colIdx, vector<vector<Block>>& column) // col
     DrawSelectBar(colIdx);
 }
 
+void InGameManager::UpdateScoreAndLevel(int points)
+{
+    // 점수 증가
+    score += points;
+
+    // 레벨 증가 조건 (최대 레벨 5 제한)
+    if (score >= level * 100 && level < 5) {
+        level++;
+        std::cout << "Level Up! Current Level: " << level << std::endl;
+    }
+
+    // 대시보드 업데이트
+    DrawDashBoard(level, score);
+}
+
 void InGameManager::CheckAndRemoveBlocks(vector<vector<Block>>& column)
 {
     for (int col = 0; col < column.size(); col++) {
         if (column[col].size() < 3) continue; // 블록이 3개 미만이면 제거할 조건 없음
 
-        int consecutiveCount = 1; // 연속된 블록 수
-        int lastIndex = -1;       // 마지막 제거할 블록의 시작 인덱스
+        // 최하단 블록부터 3개 검사
+        int start = column[col].size() - 3; // 검사 시작 인덱스 (최하단 3개)
+        if (start < 0) start = 0;          // 최소값 보정
 
-        for (int i = column[col].size() - 1; i > 0; i--) {
-            // 현재 블록과 바로 위 블록 비교
-            if (column[col][i].GetColor() == column[col][i - 1].GetColor()) {
-                consecutiveCount++;
-                lastIndex = i - 1; // 제거할 시작점 업데이트
-            }
-            else {
-                // 연속된 블록이 3개 이상일 때 제거
-                if (consecutiveCount >= 3) {
-                    // 벡터와 화면에서 제거
-                    int start = lastIndex;
-                    int end = lastIndex + consecutiveCount;
-
-                    // 화면에서 제거
-                    for (int j = start; j < end; j++) {
-                        if (j >= 0 && j < column[col].size()) {
-                            column[col][j].ClearBlock(); // 블록이 존재할 때만 지움
-                        }
-                    }
-
-                    // 벡터에서 제거
-                    if (start >= 0 && end <= column[col].size() && start < end) {
-                        column[col].erase(column[col].begin() + start, column[col].begin() + end);
-                    }
-
-                    // 점수 업데이트
-                    /*score += consecutiveCount;
-                    std::cout << "Score: " << score << std::endl;*/
-
-                    // 제거 후 남은 블록의 화면 갱신
-                    for (int j = start; j < column[col].size(); j++) {
-                        column[col][j].MoveDown();
-                        column[col][j].GenerateBlock(column[col][j].GetX(), column[col][j].GetY(), column[col][j].GetColor());
-                    }
-
-                    break; // 한 번의 제거 후 다시 확인
-                }
-
-                // 연속된 블록이 끊어지면 초기화
-                consecutiveCount = 1;
-                lastIndex = -1;
+        bool isRemovable = true;
+        for (int i = start + 1; i < start + 3; i++) {
+            if (column[col][i].GetColor() != column[col][i - 1].GetColor()) {
+                isRemovable = false;
+                break; // 색상이 다르면 제거 불가능
             }
         }
 
-        // 마지막 블록 처리 (루프가 끝난 후 연속된 블록이 남아 있다면)
-        if (consecutiveCount >= 3) {
-            int start = lastIndex;
-            int end = lastIndex + consecutiveCount;
-
+        if (isRemovable) {
             // 화면에서 제거
-            for (int j = start; j < end; j++) {
-                if (j >= 0 && j < column[col].size()) {
-                    column[col][j].ClearBlock();
-                }
+            for (int i = start; i < start + 3; i++) {
+                column[col][i].ClearBlock(); // 화면에서 블록 제거
             }
 
             // 벡터에서 제거
-            if (start >= 0 && end <= column[col].size() && start < end) {
-                column[col].erase(column[col].begin() + start, column[col].begin() + end);
-            }
+            column[col].erase(column[col].begin() + start, column[col].begin() + start + 3);
 
-            // 점수 업데이트
-            score += consecutiveCount;
-            std::cout << "Score: " << score << std::endl;
+            // 점수와 레벨 계산
+            UpdateScoreAndLevel(level * 10); // 레벨에 따른 점수 계산
 
-            // 제거 후 남은 블록의 화면 갱신
-            for (int j = start; j < column[col].size(); j++) {
-                column[col][j].MoveDown();
-                column[col][j].GenerateBlock(column[col][j].GetX(), column[col][j].GetY(), column[col][j].GetColor());
+            // 남은 블록의 화면 갱신
+            for (int i = start; i < column[col].size(); i++) {
+                column[col][i].MoveDown(); // Y 좌표 업데이트
+                column[col][i].GenerateBlock(column[col][i].GetX(), column[col][i].GetY(), column[col][i].GetColor());
             }
         }
     }
@@ -416,6 +415,7 @@ void InGameManager::PlayGame()
     int barPosition = 1;
     DrawSelectBar(barPosition);
 
+    // 입력 처리 스레드 시작
     std::thread barThread([&]() {
         while (isRunning) {
             HandleBar(barPosition, column); // 선택 바 조작
@@ -423,8 +423,9 @@ void InGameManager::PlayGame()
         }
         });
 
-    // 입력 처리 스레드 시작
     std::thread inputThread(HandleInput, std::ref(column));
+
+    DrawDashBoard(level, score);
 
     while (isRunning) {
         if (!isMoving) { // 수동 입력 중이 아니면 자동 진행
@@ -439,11 +440,23 @@ void InGameManager::PlayGame()
                 // 새 블록 생성
                 Block b;
                 ColorSelector c;
-                Color color = c.GetColor(level);
+                Color color = c.GetColor(level); // 레벨에 따른 색상 선택
                 b.SetColor(color);
 
                 // 새 블록의 위치 계산 (항상 맨 위에서 시작)
-                int x = 37 + i * 13 + i; // 열 위치
+                int x;
+                switch (i)
+                {
+                case 0:
+                    x = 37;             // 새로운 X 위치 계산
+                    break;
+                case 1:
+                    x = 51;
+                    break;
+                case 2:
+                    x = 65;
+                    break;
+                }
                 int y = 7;           // 맨 위 위치
                 b.GenerateBlock(x, y, color);
 
@@ -458,6 +471,9 @@ void InGameManager::PlayGame()
                 }
             }
         }
+
+        // 대시보드 갱신
+        DrawDashBoard(level, score);
 
         this_thread::sleep_for(std::chrono::milliseconds(1000));
 
