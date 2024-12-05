@@ -28,6 +28,8 @@ public:
 
 	void DrawMainTitle();
 
+	void GameOver();
+
 	void DrawDashBoard(int level, int score);
 
 	static void DrawSelectBar(int colIdx);
@@ -49,6 +51,10 @@ public:
 	void SelectMenu(int y);
 
 	void PlayGame();
+
+	void setLevel(int newLevel);
+	
+	int getLevel();
 
 	int Quit();
 

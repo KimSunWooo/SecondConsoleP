@@ -110,6 +110,18 @@ void InGameManager::DrawMainTitle()
     cout << "#          #            ##         ########################################################" << endl;
 }
 
+void InGameManager::GameOver() {
+    cout << "\n\n\n\n" << endl;
+    cout << "  ######      ###    ##     ## ########      ######   ##     ## ######## ########  " << endl;
+    cout << " ##    ##    ## ##   ###   ### ##           ##    ##  ##     ## ##       ##     ## " << endl;
+    cout << " ##         ##   ##  #### #### ##           ##    ##  ##     ## ##       ##     ## " << endl;
+    cout << " ##   #### ##     ## ## ### ## ######       ##    ##  ##     ## ######   ########  " << endl;
+    cout << " ##    ##  ######### ##     ## ##           ##    ##  ##     ## ##       ##   ##   " << endl;
+    cout << " ##    ##  ##     ## ##     ## ##           ##    ##   ##   ##  ##       ##    ##  " << endl;
+    cout << "  ######   ##     ## ##     ## ########      ######     #####   ######## ##     ## " << endl;
+    cout << "\n\n";
+}
+
 void InGameManager::DrawDashBoard(int level, int score)
 {
     KeyManager k;
@@ -168,7 +180,6 @@ void InGameManager::SelectBlock(int colIdx, vector<vector<Block>>& column)
 {
     // 선택된 열에서 가장 하단 블록 가져오기
     if (column[colIdx].empty()) {
-        std::cout << "해당 열에 블록이 없습니다.\n";
         return;
     }
 
@@ -256,7 +267,7 @@ void InGameManager::UpdateScoreAndLevel(int points)
     // 레벨 증가 조건 (최대 레벨 5 제한)
     if (score >= level * 100 && level < 5) {
         level++;
-        std::cout << "Level Up! Current Level: " << level << std::endl;
+        setLevel(level);
     }
 
     // 대시보드 업데이트
@@ -288,6 +299,8 @@ void InGameManager::CheckAndRemoveBlocks(vector<vector<Block>>& column)
 
             // 벡터에서 제거
             column[col].erase(column[col].begin() + start, column[col].begin() + start + 3);
+
+            column[col].shrink_to_fit(); // 사용되지 않는 메모리를 해제
 
             // 점수와 레벨 계산
             UpdateScoreAndLevel(level * 10); // 레벨에 따른 점수 계산
@@ -411,7 +424,6 @@ void InGameManager::PlayGame()
 {
     InGameDisplay();
     vector<vector<Block>> column(3); // 3개의 열 생성
-    int level = 1;
     int barPosition = 1;
     DrawSelectBar(barPosition);
 
@@ -473,19 +485,36 @@ void InGameManager::PlayGame()
         }
 
         // 대시보드 갱신
+        cout << level << "  " << score << endl;
         DrawDashBoard(level, score);
 
         this_thread::sleep_for(std::chrono::milliseconds(1000));
 
         // 종료 조건 추가
-        if (level >= 10) {
-            isRunning = false;
+        for (int i = 0; i < column.size(); i++) {
+            if (column[i].size() > 19) {
+                isRunning = false;
+                system("cls");
+                GameOver();
+                std::this_thread::sleep_for(std::chrono::seconds(3)); // 3초 대기
+                Quit();
+            }
         }
     }
 
     // 입력 처리 스레드 종료 대기
     inputThread.join();
     barThread.join();
+}
+
+void InGameManager::setLevel(int newLevel)
+{
+    level = newLevel;
+}
+
+int InGameManager::getLevel()
+{
+    return level;
 }
 
 int InGameManager::Quit()
